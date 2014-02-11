@@ -160,7 +160,7 @@
         };
 
         ACStats.prototype.add = function(data, type) {
-            if (this.getSize >= 10) {
+            if (this.getSize() >= 10) {
                 this.flush();
             }
 
@@ -181,10 +181,18 @@
         };
 
         ACStats.prototype.hit = function(data) {
+            if (!data.url) {
+                return false;
+            }
+
             return this.add(data, 'hits');
         };
 
         ACStats.prototype.event = function(data) {
+            if (!data.name) {
+                return false;
+            }
+
             return this.add(data, 'events');
         };
 

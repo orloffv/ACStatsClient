@@ -52,6 +52,15 @@
             done();
         });
 
+        it('Validate hit', function (done) {
+            ACStatsInstance.hit({url: null});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+
+            assert(ACStatsInstance.getSize() === 1);
+            assert(ACStatsInstance.queue.hits[0].url === 'http://yandex.ru/second');
+            done();
+        });
+
         it('Flush data', function (done) {
             ACStatsInstance.hit({url: 'http://yandex.ru/first'});
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
@@ -59,6 +68,24 @@
             assert(ACStatsInstance.getSize() === 2);
             ACStatsInstance.flush();
             assert(ACStatsInstance.getSize() === 0);
+            done();
+        });
+
+        it('Autoflush data', function (done) {
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            assert(ACStatsInstance.getSize() === 9);
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            assert(ACStatsInstance.getSize() === 10);
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            assert(ACStatsInstance.getSize() === 1);
             done();
         });
     });
