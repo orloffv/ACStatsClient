@@ -174,6 +174,8 @@
             this.options = extend({data: {}, url: ''}, options);
             this.queue = {};
             this.allowedTypes = ['hits', 'sessions', 'events'];
+            this.flushing = false;
+            this.sendData = {};
         };
 
         ACStats.prototype.add = function(data, type) {
@@ -235,14 +237,21 @@
                 return false;
             }
 
-            var that = this;
-            var data = this.queue;
-            this.resetQueue();
-            data.timestamp = getTimestamp();
+            if (this.flushing) {
+                return false;
+            }
 
-            XHR.post(this.options.url, data, function(err, response) {
+            this.flushing = true;
+
+            var that = this;
+            this.sendData = this.queue;
+            this.resetQueue();
+            this.sendData.timestamp = getTimestamp();
+
+            XHR.post(this.options.url, this.sendData, function(err, response) {
+                that.flushing = false;
                 if (err) {
-                    that.restoreQueue(data);
+                    that.restoreQueue(that.sendData);
                 }
 
                 if (callback) {
