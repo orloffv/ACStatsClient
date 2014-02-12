@@ -231,6 +231,10 @@
         };
 
         ACStats.prototype.flush = function(callback) {
+            if (this.getSize() === 0) {
+                return false;
+            }
+
             var that = this;
             var data = this.queue;
             this.resetQueue();
