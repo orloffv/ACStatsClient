@@ -47,7 +47,7 @@
                                 if (onreadystatechange && request.readyState === 4) {
                                     onreadystatechange = undefined;
 
-                                    if (request.status === 200) {
+                                    if (request.status === 200 || request.status === 201) {
                                         callback(null, JSON.parse(request.responseText));
                                     } else if (typeof(request.status) === "number" &&
                                         request.status >= 400  && request.status < 600) {
