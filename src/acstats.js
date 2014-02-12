@@ -107,6 +107,8 @@
                 } catch (e2) {
                     callback(e2);
                 }
+            } else {
+                callback(new Error());
             }
         }
     };
@@ -149,6 +151,20 @@
         return obj;
     };
 
+    var inArray = function(array, item) {
+        if (array === null) {
+            return false;
+        }
+        var i, l;
+
+        for (i = 0, l = array.length; i < l; i++) {
+            if (array[i] === item) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     var getTimestamp = function() {
         return Math.round(new Date().getTime()/1000);
     };
@@ -157,6 +173,7 @@
         var ACStats = function(options) {
             this.options = extend({data: {}, url: ''}, options);
             this.queue = {};
+            this.allowedTypes = ['hits', 'sessions', 'events'];
         };
 
         ACStats.prototype.add = function(data, type) {
@@ -196,12 +213,38 @@
             return this.add(data, 'events');
         };
 
-        ACStats.prototype.flush = function(callback) {
-            var data = this.queue;
+        ACStats.prototype.resetQueue = function() {
             this.queue = {};
+        };
+
+        ACStats.prototype.restoreQueue = function(data) {
+            var that = this;
+            each(data, function(items, type) {
+                if (inArray(that.allowedTypes, type)) {
+                    if (!that.queue[type]) {
+                        that.queue[type] = [];
+                    }
+
+                    that.queue[type].push.apply(that.queue[type], items);
+                }
+            });
+        };
+
+        ACStats.prototype.flush = function(callback) {
+            var that = this;
+            var data = this.queue;
+            this.resetQueue();
             data.timestamp = getTimestamp();
 
-            XHR.post(this.options.url, data, callback);
+            XHR.post(this.options.url, data, function(err, response) {
+                if (err) {
+                    that.restoreQueue(data);
+                }
+
+                if (callback) {
+                    callback(err, response);
+                }
+            });
         };
 
         return ACStats;

@@ -67,7 +67,7 @@
 
             assert(ACStatsInstance.getSize() === 2);
             ACStatsInstance.flush();
-            assert(ACStatsInstance.getSize() === 0);
+            assert(ACStatsInstance.getSize() === 2);
             done();
         });
 
@@ -85,7 +85,7 @@
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
             assert(ACStatsInstance.getSize() === 10);
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
-            assert(ACStatsInstance.getSize() === 1);
+            assert(ACStatsInstance.getSize() === 11);
             done();
         });
     });
