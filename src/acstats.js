@@ -12,6 +12,7 @@
 })(this, function(root, MockXMLHttpRequest) {
     "use strict";
     root = typeof root === 'object' ? root : window;
+    MockXMLHttpRequest = (MockXMLHttpRequest || MockXMLHttpRequest === {}) ? undefined : MockXMLHttpRequest;
 
     var XHR = {
         XMLHttpFactories: [
@@ -37,7 +38,9 @@
         },
         post: function(url, payload, callback) {
             if (typeof payload !== 'object') {
-                throw new Error('Expected an object to POST');
+                callback(new Error());
+
+                return false;
             }
             payload = JSON.stringify(payload);
             callback = callback || function() {};
@@ -194,19 +197,19 @@
         reset: function() {
             this.data = {};
             if (this.supportStorage()) {
-                root.localStorage[this.localstorageKey] = {};
+                this.storageSet({});
             }
         },
         init: function() {
             this.data = {};
 
             if (this.supportStorage()) {
-                var data = root.localStorage[this.localstorageKey];
+                var data = this.storageGet();
                 if (data) {
                     this.data = data;
                 }
 
-                var backupData = root.localStorage[this.localstorageBackupKey];
+                var backupData = this.storageGet(this.localstorageBackupKey);
 
                 if (backupData) {
                     this.restore(backupData);
@@ -247,12 +250,28 @@
         },
         syncStorage: function() {
             if (this.supportStorage()) {
-                root.localStorage[this.localstorageKey] = this.data;
+                this.storageSet(this.data);
             }
         },
         backupStorage: function(data) {
             if (this.supportStorage()) {
-                root.localStorage[this.localstorageBackupKey] = data;
+                this.storageSet(data, this.localstorageBackupKey);
+            }
+        },
+        storageSet: function(data, key) {
+            key = key || this.localstorageKey;
+            try {
+                root.localStorage[key] = JSON.stringify(data);
+            } catch(e) {
+                return {};
+            }
+        },
+        storageGet: function(key) {
+            key = key || this.localstorageKey;
+            try {
+                return JSON.parse(root.localStorage[key]);
+            } catch(e) {
+                return {};
             }
         }
     };
