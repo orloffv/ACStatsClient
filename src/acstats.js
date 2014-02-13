@@ -11,8 +11,20 @@
     }
 })(this, function(root, MockXMLHttpRequest) {
     "use strict";
+
+    var isEmptyObject = function(obj) {
+        var name;
+        for (name in obj ) {
+            if (obj.hasOwnProperty(name)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
     root = typeof root === 'object' ? root : window;
-    MockXMLHttpRequest = (MockXMLHttpRequest || MockXMLHttpRequest === {}) ? undefined : MockXMLHttpRequest;
+    MockXMLHttpRequest = (MockXMLHttpRequest && typeof MockXMLHttpRequest === 'object' && isEmptyObject(MockXMLHttpRequest)) ? undefined : MockXMLHttpRequest;
 
     var XHR = {
         XMLHttpFactories: [
