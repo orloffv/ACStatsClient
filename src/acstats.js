@@ -174,34 +174,63 @@
         return Math.round(new Date().getTime()/1000);
     };
 
+    var Queue = function(options) {
+        this.options = options;
+        this.reset();
+    };
+
+    Queue.prototype.getSize = function() {
+        var count = 0;
+        each(this.data, function(items) {
+            count += items.length;
+        });
+
+        return count;
+    };
+
+    Queue.prototype.reset= function() {
+        this.data = {};
+    };
+
+    Queue.prototype.push = function(type, data) {
+        if (!this.data[type]) {
+            this.data[type] = [];
+        }
+
+        this.data[type].push(data);
+    };
+
+    Queue.prototype.restore = function(data) {
+        var that = this;
+        each(data, function(items, type) {
+            if (inArray(that.options.allowedTypes, type)) {
+                if (!that.data[type]) {
+                    that.data[type] = [];
+                }
+
+                that.data[type].push.apply(that.data[type], items);
+            }
+        });
+    };
+
+    Queue.prototype.getAll = function() {
+        return this.data;
+    };
+
     var ACStats = (function(root) {
         var ACStats = function(options) {
             this.options = extend({data: {}, url: '', flushLimit: 10}, options);
-            this.queue = {};
-            this.allowedTypes = ['hits', 'sessions', 'events'];
+            this.queue = new Queue({allowedTypes: ['hits', 'sessions', 'events']});
             this.flushing = false;
             this.sendData = {};
         };
 
         ACStats.prototype.add = function(data, type) {
-            if (this.getSize() >= this.options.flushLimit) {
+            if (this.queue.getSize() >= this.options.flushLimit) {
                 this.flush();
             }
 
-            if (!this.queue[type]) {
-                this.queue[type] = [];
-            }
-
-            this.queue[type].push(extend({createdTimestamp: getTimestamp()}, data, this.options.data));
-        };
-
-        ACStats.prototype.getSize = function() {
-            var count = 0;
-            each(this.queue, function(items) {
-                count += items.length;
-            });
-
-            return count;
+            this.queue.push(type, extend({createdTimestamp: getTimestamp()}, data, this.options.data));
         };
 
         ACStats.prototype.hit = function(data) {
@@ -224,25 +253,8 @@
             return this.add(data, 'sessions');
         };
 
-        ACStats.prototype.resetQueue = function() {
-            this.queue = {};
-        };
-
-        ACStats.prototype.restoreQueue = function(data) {
-            var that = this;
-            each(data, function(items, type) {
-                if (inArray(that.allowedTypes, type)) {
-                    if (!that.queue[type]) {
-                        that.queue[type] = [];
-                    }
-
-                    that.queue[type].push.apply(that.queue[type], items);
-                }
-            });
-        };
-
         ACStats.prototype.flush = function(callback) {
-            if (this.getSize() === 0) {
+            if (this.queue.getSize() === 0) {
                 return false;
             }
 
@@ -253,14 +265,15 @@
             this.flushing = true;
 
             var that = this;
-            this.sendData = this.queue;
-            this.resetQueue();
+            this.sendData = this.queue.getAll();
+            this.queue.reset();
             this.sendData.timestamp = getTimestamp();
 
             XHR.post(this.options.url, this.sendData, function(err, response) {
                 that.flushing = false;
+
                 if (err) {
-                    that.restoreQueue(that.sendData);
+                    that.queue.restore(that.sendData);
                 }
 
                 if (callback) {
