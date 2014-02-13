@@ -1,18 +1,20 @@
 (function(root, factory) {
     "use strict";
     if (typeof exports === 'object') {
-        module.exports = factory();
+        module.exports = function(MockXMLHttpRequest) {
+            return factory(MockXMLHttpRequest);
+        };
     } else if (typeof define === 'function' && define.amd) {
         define(factory);
     } else {
         root.acstats = factory;
     }
-})(this, function() {
+})(this, function(MockXMLHttpRequest) {
     "use strict";
 
     var XHR = {
         XMLHttpFactories: [
-            function () {return new XMLHttpRequest();},
+            function () {return MockXMLHttpRequest ? MockXMLHttpRequest : new XMLHttpRequest();},
             function () {return new ActiveXObject("Msxml2.XMLHTTP");},
             function () {return new ActiveXObject("Msxml3.XMLHTTP");},
             function () {return new ActiveXObject("Microsoft.XMLHTTP");}
@@ -73,13 +75,16 @@
                                 callback(exc);
                             }
                         };
-
-                        request.open('POST', url, true);
-                        if (request.setRequestHeader) {
-                            request.setRequestHeader('Content-Type', 'application/json');
+                        try {
+                            request.open('POST', url, true);
+                            if (request.setRequestHeader) {
+                                request.setRequestHeader('Content-Type', 'application/json');
+                            }
+                            request.onreadystatechange = onreadystatechange;
+                            request.send(payload);
+                        } catch (e3) {
+                            callback(e3);
                         }
-                        request.onreadystatechange = onreadystatechange;
-                        request.send(payload);
                     } catch (e1) {
                         // Sending using the normal xmlhttprequest object didn't work, try XDomainRequest
                         if (typeof XDomainRequest !== "undefined") {

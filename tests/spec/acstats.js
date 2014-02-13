@@ -1,7 +1,31 @@
 (function () {
     "use strict";
     var assert = require('assert');
-    var ACStats = require('../../src/acstats');
+    var sinon = require('sinon');
+
+    var XMLHttpRequest = {};
+
+    XMLHttpRequest.open = function() {
+        return true;
+    };
+
+    XMLHttpRequest.send = function() {
+        return XMLHttpRequest.onreadystatechange();
+    };
+
+    XMLHttpRequest.response200 = function() {
+        this.status = 200;
+        this.readyState = 4;
+        this.responseText = '{}';
+    };
+
+    XMLHttpRequest.response400 = function() {
+        this.status = 400;
+        this.readyState = 4;
+        this.responseText = '{}';
+    };
+
+    var ACStats = require('../../src/acstats')(XMLHttpRequest);
 
     before(function(done) {
         done();
@@ -66,8 +90,9 @@
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
 
             assert(ACStatsInstance.getSize() === 2);
+            XMLHttpRequest.response200();
             ACStatsInstance.flush();
-            assert(ACStatsInstance.getSize() === 2);
+            assert(ACStatsInstance.getSize() === 0);
             done();
         });
 
@@ -84,8 +109,20 @@
             assert(ACStatsInstance.getSize() === 9);
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
             assert(ACStatsInstance.getSize() === 10);
+            XMLHttpRequest.response200();
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
-            assert(ACStatsInstance.getSize() === 11);
+            assert(ACStatsInstance.getSize() === 1);
+            done();
+        });
+
+        it('Flush data with error response', function (done) {
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+
+            assert(ACStatsInstance.getSize() === 2);
+            XMLHttpRequest.response400();
+            ACStatsInstance.flush();
+            assert(ACStatsInstance.getSize() === 2);
             done();
         });
     });
