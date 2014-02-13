@@ -1,8 +1,8 @@
-(function () {
+(function (global) {
     "use strict";
     var assert = require('assert');
     var sinon = require('sinon');
-
+    global.localStorage = require('localstorage');
     var XMLHttpRequest = {};
 
     XMLHttpRequest.open = function() {
@@ -25,7 +25,7 @@
         this.responseText = '{}';
     };
 
-    var ACStats = require('../../src/acstats')(XMLHttpRequest);
+    var ACStats = require('../../src/acstats')(XMLHttpRequest, global);
 
     before(function(done) {
         done();
@@ -51,6 +51,8 @@
                 }
             };
 
+            global.localStorage = {};
+
             ACStatsInstance = new ACStats(options);
             done();
         });
@@ -63,7 +65,7 @@
             ACStatsInstance.event({name: 'First event', additional: {count: 2}});
 
             assert(ACStatsInstance.queue.getSize() === 1);
-            assert(ACStatsInstance.queue.getAll().events[0].name === 'First event');
+            assert(ACStatsInstance.queue.getData().events[0].name === 'First event');
             done();
         });
 
@@ -72,7 +74,7 @@
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
 
             assert(ACStatsInstance.queue.getSize() === 2);
-            assert(ACStatsInstance.queue.getAll().hits[0].url === 'http://yandex.ru/first');
+            assert(ACStatsInstance.queue.getData().hits[0].url === 'http://yandex.ru/first');
             done();
         });
 
@@ -81,7 +83,7 @@
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
 
             assert(ACStatsInstance.queue.getSize() === 1);
-            assert(ACStatsInstance.queue.getAll().hits[0].url === 'http://yandex.ru/second');
+            assert(ACStatsInstance.queue.getData().hits[0].url === 'http://yandex.ru/second');
             done();
         });
 
@@ -125,5 +127,35 @@
             assert(ACStatsInstance.queue.getSize() === 2);
             done();
         });
+
+        it('Support storage', function (done) {
+            assert(ACStatsInstance.queue.supportStorage() === true);
+            done();
+        });
+
+        it('Init data with localstorage', function (done) {
+            ACStatsInstance.queue.init();
+            assert(ACStatsInstance.queue.getSize() === 0);
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'});
+            assert(ACStatsInstance.queue.getSize() === 1);
+            ACStatsInstance.queue.init();
+            assert(ACStatsInstance.queue.getSize() === 1);
+            ACStatsInstance.queue.init();
+            assert(ACStatsInstance.queue.getSize() === 1);
+            done();
+        });
+
+        it('Init with backup data with localstorage', function (done) {
+            ACStatsInstance.queue.init();
+            assert(ACStatsInstance.queue.getSize() === 0);
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'});
+            assert(ACStatsInstance.queue.getSize() === 1);
+            ACStatsInstance.queue.backupStorage(ACStatsInstance.queue.getData());
+            ACStatsInstance.queue.init();
+            assert(ACStatsInstance.queue.getSize() === 2);
+            ACStatsInstance.queue.init();
+            assert(ACStatsInstance.queue.getSize() === 2);
+            done();
+        });
     });
-})();
+})(this);

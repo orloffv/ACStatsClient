@@ -1,15 +1,15 @@
 (function(root, factory) {
     "use strict";
     if (typeof exports === 'object') {
-        module.exports = function(MockXMLHttpRequest) {
-            return factory(MockXMLHttpRequest);
+        module.exports = function(MockXMLHttpRequest, global) {
+            return factory(global ? global : root, MockXMLHttpRequest);
         };
     } else if (typeof define === 'function' && define.amd) {
-        define(factory);
+        define(factory(root));
     } else {
-        root.acstats = factory;
+        root.acstats = factory(root);
     }
-})(this, function(MockXMLHttpRequest) {
+})(this, function(root, MockXMLHttpRequest) {
     "use strict";
 
     var XHR = {
@@ -176,45 +176,84 @@
 
     var Queue = function(options) {
         this.options = options;
-        this.reset();
+        this.localstorageKey = 'acstats';
+        this.localstorageBackupKey = 'acstatsBackup';
+        this.init();
     };
 
-    Queue.prototype.getSize = function() {
-        var count = 0;
-        each(this.data, function(items) {
-            count += items.length;
-        });
+    Queue.prototype = {
+        getSize: function() {
+            var count = 0;
+            each(this.data, function(items) {
+                count += items.length;
+            });
 
-        return count;
-    };
+            return count;
+        },
+        reset: function() {
+            this.data = {};
+            if (this.supportStorage()) {
+                root.localStorage[this.localstorageKey] = {};
+            }
+        },
+        init: function() {
+            this.data = {};
 
-    Queue.prototype.reset= function() {
-        this.data = {};
-    };
-
-    Queue.prototype.push = function(type, data) {
-        if (!this.data[type]) {
-            this.data[type] = [];
-        }
-
-        this.data[type].push(data);
-    };
-
-    Queue.prototype.restore = function(data) {
-        var that = this;
-        each(data, function(items, type) {
-            if (inArray(that.options.allowedTypes, type)) {
-                if (!that.data[type]) {
-                    that.data[type] = [];
+            if (this.supportStorage()) {
+                var data = root.localStorage[this.localstorageKey];
+                if (data) {
+                    this.data = data;
                 }
 
-                that.data[type].push.apply(that.data[type], items);
-            }
-        });
-    };
+                var backupData = root.localStorage[this.localstorageBackupKey];
 
-    Queue.prototype.getAll = function() {
-        return this.data;
+                if (backupData) {
+                    this.restore(backupData);
+                    this.backupStorage(null);
+                }
+            }
+        },
+        push: function(type, data) {
+            if (!this.data[type]) {
+                this.data[type] = [];
+            }
+
+            this.data[type].push(data);
+            this.syncStorage();
+        },
+        restore: function(data) {
+            var that = this;
+            each(data, function(items, type) {
+                if (inArray(that.options.allowedTypes, type)) {
+                    if (!that.data[type]) {
+                        that.data[type] = [];
+                    }
+
+                    that.data[type].push.apply(that.data[type], items);
+                }
+            });
+            this.syncStorage();
+        },
+        getData: function() {
+            return this.data;
+        },
+        supportStorage: function() {
+            try {
+                return 'localStorage' in root && root.localStorage !== null;
+            } catch (e) {
+                return false;
+            }
+        },
+        syncStorage: function() {
+            if (this.supportStorage()) {
+                root.localStorage[this.localstorageKey] = this.data;
+            }
+        },
+        backupStorage: function(data) {
+            if (this.supportStorage()) {
+                root.localStorage[this.localstorageBackupKey] = data;
+            }
+        }
     };
 
     var ACStats = (function(root) {
@@ -225,61 +264,62 @@
             this.sendData = {};
         };
 
-        ACStats.prototype.add = function(data, type) {
-            if (this.queue.getSize() >= this.options.flushLimit) {
-                this.flush();
-            }
-
-            this.queue.push(type, extend({createdTimestamp: getTimestamp()}, data, this.options.data));
-        };
-
-        ACStats.prototype.hit = function(data) {
-            if (!data.url) {
-                return false;
-            }
-
-            return this.add(data, 'hits');
-        };
-
-        ACStats.prototype.event = function(data) {
-            if (!data.name) {
-                return false;
-            }
-
-            return this.add(data, 'events');
-        };
-
-        ACStats.prototype.session = function(data) {
-            return this.add(data, 'sessions');
-        };
-
-        ACStats.prototype.flush = function(callback) {
-            if (this.queue.getSize() === 0) {
-                return false;
-            }
-
-            if (this.flushing) {
-                return false;
-            }
-
-            this.flushing = true;
-
-            var that = this;
-            this.sendData = this.queue.getAll();
-            this.queue.reset();
-            this.sendData.timestamp = getTimestamp();
-
-            XHR.post(this.options.url, this.sendData, function(err, response) {
-                that.flushing = false;
-
-                if (err) {
-                    that.queue.restore(that.sendData);
+        ACStats.prototype = {
+            add: function(data, type) {
+                if (this.queue.getSize() >= this.options.flushLimit) {
+                    this.flush();
                 }
 
-                if (callback) {
-                    callback(err, response);
+                this.queue.push(type, extend({createdTimestamp: getTimestamp()}, data, this.options.data));
+            },
+            hit: function(data) {
+                if (!data.url) {
+                    return false;
                 }
-            });
+
+                return this.add(data, 'hits');
+            },
+            event: function(data) {
+                if (!data.name) {
+                    return false;
+                }
+
+                return this.add(data, 'events');
+            },
+            session: function(data) {
+                return this.add(data, 'sessions');
+            },
+            flush: function(callback) {
+                if (this.queue.getSize() === 0) {
+                    return false;
+                }
+
+                if (this.flushing) {
+                    return false;
+                }
+
+                this.flushing = true;
+
+                var that = this;
+                this.sendData = this.queue.getData();
+                this.queue.backupStorage(this.sendData);
+                this.queue.reset();
+                this.sendData.timestamp = getTimestamp();
+
+                XHR.post(this.options.url, this.sendData, function(err, response) {
+                    that.flushing = false;
+
+                    if (err) {
+                        that.queue.restore(that.sendData);
+                    }
+
+                    that.queue.backupStorage(null);
+
+                    if (callback) {
+                        callback(err, response);
+                    }
+                });
+            }
         };
 
         return ACStats;
