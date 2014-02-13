@@ -171,7 +171,7 @@
 
     var ACStats = (function(root) {
         var ACStats = function(options) {
-            this.options = extend({data: {}, url: ''}, options);
+            this.options = extend({data: {}, url: '', flushLimit: 10}, options);
             this.queue = {};
             this.allowedTypes = ['hits', 'sessions', 'events'];
             this.flushing = false;
@@ -179,7 +179,7 @@
         };
 
         ACStats.prototype.add = function(data, type) {
-            if (this.getSize() >= 10) {
+            if (this.getSize() >= this.options.flushLimit) {
                 this.flush();
             }
 
@@ -213,6 +213,10 @@
             }
 
             return this.add(data, 'events');
+        };
+
+        ACStats.prototype.session = function(data) {
+            return this.add(data, 'sessions');
         };
 
         ACStats.prototype.resetQueue = function() {
