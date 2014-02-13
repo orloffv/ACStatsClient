@@ -5,12 +5,13 @@
             return factory(global ? global : root, MockXMLHttpRequest);
         };
     } else if (typeof define === 'function' && define.amd) {
-        define(factory(root));
+        define(factory);
     } else {
         root.acstats = factory(root);
     }
 })(this, function(root, MockXMLHttpRequest) {
     "use strict";
+    root = typeof root === 'object' ? root : window;
 
     var XHR = {
         XMLHttpFactories: [
