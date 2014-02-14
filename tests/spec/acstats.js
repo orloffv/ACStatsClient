@@ -1,7 +1,7 @@
 (function (global) {
     "use strict";
     var assert = require('assert');
-    global.localStorage = require('localstorage');
+    global.localStorage = require('localStorage');
     var XMLHttpRequest = {};
 
     XMLHttpRequest.open = function() {
