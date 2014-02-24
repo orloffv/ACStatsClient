@@ -1,6 +1,8 @@
 (function (global) {
     "use strict";
     var assert = require('assert');
+    var sinon = require('sinon');
+
     global.localStorage = require('localStorage');
     var XMLHttpRequest = {};
 
@@ -35,9 +37,10 @@
     });
 
     describe('ACStats Client', function() {
-        var ACStatsInstance;
+        var ACStatsInstance, clock;
 
         beforeEach(function(done) {
+            clock = sinon.useFakeTimers();
             var options = {
                 url: '//localhost/api/all',
                 data: {
@@ -57,6 +60,7 @@
         });
 
         afterEach(function(done) {
+            clock.restore();
             done();
         });
 
@@ -154,6 +158,19 @@
             assert(ACStatsInstance.queue.getSize() === 2);
             ACStatsInstance.queue.init();
             assert(ACStatsInstance.queue.getSize() === 2);
+            done();
+        });
+
+        it('Autoflush', function(done) {
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'});
+            ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+
+            assert(ACStatsInstance.queue.getSize() === 2);
+            assert(ACStatsInstance.flushing === false);
+            XMLHttpRequest.response200();
+            clock.tick(1000 * 60 * 3 + 5);
+            assert(ACStatsInstance.flushing === false);
+            assert(ACStatsInstance.queue.getSize() === 0);
             done();
         });
     });

@@ -290,10 +290,11 @@
 
     var ACStats = (function(root) {
         var ACStats = function(options) {
-            this.options = extend({data: {}, url: '', flushLimit: 10}, options);
+            this.options = extend({data: {}, url: '', flushLimit: 10, autoFlushInterval: 1000 * 60 * 3}, options);
             this.queue = new Queue({allowedTypes: ['hits', 'sessions', 'events']});
             this.flushing = false;
             this.sendData = {};
+            this.initAutoFlush();
         };
 
         ACStats.prototype = {
@@ -351,6 +352,19 @@
                         callback(err, response);
                     }
                 });
+            },
+            initAutoFlush: function() {
+                if (!this.options.autoFlushInterval) {
+                    return false;
+                }
+
+                var that = this;
+                var autoFlush = function() {
+                    that.flush();
+                    that.autoFlushId = setInterval(autoFlush, that.options.autoFlushInterval);
+                };
+
+                this.autoFlushId = setInterval(autoFlush, this.options.autoFlushInterval);
             }
         };
 
