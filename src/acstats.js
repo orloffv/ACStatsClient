@@ -6,9 +6,9 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         define(factory);
-    } else {
-        root.acstats = factory(root);
     }
+
+    root.ACStats = factory(root);
 })(this, function(root, MockXMLHttpRequest) {
     "use strict";
 
