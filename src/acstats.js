@@ -298,29 +298,33 @@
         };
 
         ACStats.prototype = {
-            add: function(data, type) {
+            add: function(data, type, force) {
                 if (this.queue.getSize() >= this.options.flushLimit) {
                     this.flush();
                 }
 
                 this.queue.push(type, extend({createdTimestamp: getTimestamp()}, data, this.options.data));
+
+                if (force === true) {
+                    this.flush();
+                }
             },
-            hit: function(data) {
+            hit: function(data, force) {
                 if (!data.url) {
                     return false;
                 }
 
-                return this.add(data, 'hits');
+                return this.add(data, 'hits', force);
             },
-            event: function(data) {
+            event: function(data, force) {
                 if (!data.name) {
                     return false;
                 }
 
-                return this.add(data, 'events');
+                return this.add(data, 'events', force);
             },
-            session: function(data) {
-                return this.add(data, 'sessions');
+            session: function(data, force) {
+                return this.add(data, 'sessions', force);
             },
             flush: function(callback) {
                 if (this.queue.getSize() === 0) {

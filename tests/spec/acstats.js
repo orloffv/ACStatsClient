@@ -72,6 +72,13 @@
             done();
         });
 
+        it('Add event with force', function (done) {
+            ACStatsInstance.event({name: 'First event', additional: {count: 2}}, true);
+
+            assert(ACStatsInstance.queue.getSize() === 0);
+            done();
+        });
+
         it('Add 2 hits', function (done) {
             ACStatsInstance.hit({url: 'http://yandex.ru/first'});
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
