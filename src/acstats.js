@@ -291,7 +291,7 @@
     var ACStats = (function(root) {
         var ACStats = function(options) {
             this.options = extend({data: {}, url: '', flushLimit: 10, autoFlushInterval: 1000 * 60 * 3}, options);
-            this.queue = new Queue({allowedTypes: ['hits', 'sessions', 'events']});
+            this.queue = new Queue({allowedTypes: ['hits', 'sessions', 'events', 'times']});
             this.flushing = false;
             this.sendData = {};
             this.initAutoFlush();
@@ -315,6 +315,13 @@
                 }
 
                 return this.add(data, 'hits', force);
+            },
+            time: function(data, force) {
+                if (!data.url) {
+                    return false;
+                }
+
+                return this.add(data, 'times', force);
             },
             event: function(data, force) {
                 if (!data.name) {
