@@ -171,11 +171,14 @@
         it('Autoflush', function(done) {
             ACStatsInstance.hit({url: 'http://yandex.ru/first'});
             ACStatsInstance.hit({url: 'http://yandex.ru/second'});
+            var onFlush = sinon.spy(ACStatsInstance, 'flush');
 
             assert(ACStatsInstance.queue.getSize() === 2);
             assert(ACStatsInstance.flushing === false);
             XMLHttpRequest.response200();
-            clock.tick(1000 * 60 * 3 + 5);
+            assert(onFlush.getCalls().length === 0);
+            clock.tick(1000 * 60 * 3 * 10 + 5);
+            assert(onFlush.getCalls().length === 10);
             assert(ACStatsInstance.flushing === false);
             assert(ACStatsInstance.queue.getSize() === 0);
             done();

@@ -139,26 +139,33 @@
         var pid = Math.floor(Math.random() * (32767));
         var machine = Math.floor(Math.random() * (16777216));
 
-        if (typeof (localStorage) != 'undefined') {
-            var mongoMachineId = parseInt(localStorage['mongoMachineId']);
+        if (typeof (localStorage) !== 'undefined') {
+            var mongoMachineId = parseInt(localStorage.mongoMachineId, 10);
             if (mongoMachineId >= 0 && mongoMachineId <= 16777215) {
-                machine = Math.floor(localStorage['mongoMachineId']);
+                machine = Math.floor(localStorage.mongoMachineId);
             }
             // Just always stick the value in.
-            localStorage['mongoMachineId'] = machine;
-            document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT'
+            localStorage.mongoMachineId = machine;
+            if (typeof document !== 'undefined') {
+                document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT';
+            }
         }
         else {
-            var cookieList = document.cookie.split('; ');
-            for (var i in cookieList) {
-                var cookie = cookieList[i].split('=');
-                if (cookie[0] == 'mongoMachineId' && cookie[1] >= 0 && cookie[1] <= 16777215) {
-                    machine = cookie[1];
-                    break;
+            if (typeof document !== 'undefined') {
+                var cookieList = document.cookie.split('; ');
+                for (var i in cookieList) {
+                    if (cookieList.hasOwnProperty(i)) {
+                        var cookie = cookieList[i].split('=');
+                        if (cookie[0] === 'mongoMachineId' && cookie[1] >= 0 && cookie[1] <= 16777215) {
+                            machine = cookie[1];
+                            break;
+                        }
+                    }
                 }
             }
-            document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT';
-
+            if (typeof document !== 'undefined') {
+                document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT';
+            }
         }
 
         function ObjId() {
@@ -166,19 +173,19 @@
                 return new ObjectId(arguments[0], arguments[1], arguments[2], arguments[3]).toString();
             }
 
-            if (typeof (arguments[0]) == 'object') {
+            if (typeof (arguments[0]) === 'object') {
                 this.timestamp = arguments[0].timestamp;
                 this.machine = arguments[0].machine;
                 this.pid = arguments[0].pid;
                 this.increment = arguments[0].increment;
             }
-            else if (typeof (arguments[0]) == 'string' && arguments[0].length == 24) {
-                this.timestamp = Number('0x' + arguments[0].substr(0, 8)),
-                    this.machine = Number('0x' + arguments[0].substr(8, 6)),
-                    this.pid = Number('0x' + arguments[0].substr(14, 4)),
-                    this.increment = Number('0x' + arguments[0].substr(18, 6))
+            else if (typeof (arguments[0]) === 'string' && arguments[0].length === 24) {
+                this.timestamp = Number('0x' + arguments[0].substr(0, 8));
+                this.machine = Number('0x' + arguments[0].substr(8, 6));
+                this.pid = Number('0x' + arguments[0].substr(14, 4));
+                this.increment = Number('0x' + arguments[0].substr(18, 6));
             }
-            else if (arguments.length == 4 && arguments[0] != null) {
+            else if (arguments.length === 4 && arguments[0] !== null) {
                 this.timestamp = arguments[0];
                 this.machine = arguments[1];
                 this.pid = arguments[2];
@@ -193,7 +200,7 @@
                     increment = 0;
                 }
             }
-        };
+        }
         return ObjId;
     })();
 
@@ -463,7 +470,6 @@
                 var that = this;
                 var autoFlush = function() {
                     that.flush();
-                    that.autoFlushId = setInterval(autoFlush, that.options.autoFlushInterval);
                 };
 
                 this.autoFlushId = setInterval(autoFlush, this.options.autoFlushInterval);
