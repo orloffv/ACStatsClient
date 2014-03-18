@@ -455,6 +455,7 @@
                         that.queue.restore(that.sendData);
                     }
 
+                    that.sendData = null;
                     that.queue.backupStorage(null);
 
                     if (callback) {
