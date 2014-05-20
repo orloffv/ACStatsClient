@@ -134,23 +134,32 @@
         }
     };
 
+    var isLocalStorageNameSupported = function() {
+        try {
+            root.localStorage.setItem('test', '1');
+            root.localStorage.removeItem('test');
+            return true;
+        } catch (error) {
+            return false;
+        }
+    };
+
     var ObjectId = (function () {
         var increment = 0;
         var pid = Math.floor(Math.random() * (32767));
         var machine = Math.floor(Math.random() * (16777216));
 
-        if (typeof (localStorage) !== 'undefined') {
-            var mongoMachineId = parseInt(localStorage.mongoMachineId, 10);
+        if (isLocalStorageNameSupported()) {
+            var mongoMachineId = parseInt(root.localStorage.mongoMachineId, 10);
             if (mongoMachineId >= 0 && mongoMachineId <= 16777215) {
-                machine = Math.floor(localStorage.mongoMachineId);
+                machine = Math.floor(root.localStorage.mongoMachineId);
             }
             // Just always stick the value in.
-            localStorage.mongoMachineId = machine;
+            root.localStorage.mongoMachineId = machine;
             if (typeof document !== 'undefined') {
                 document.cookie = 'mongoMachineId=' + machine + ';expires=Tue, 19 Jan 2038 05:00:00 GMT';
             }
-        }
-        else {
+        } else {
             if (typeof document !== 'undefined') {
                 var cookieList = document.cookie.split('; ');
                 for (var i in cookieList) {
@@ -352,11 +361,7 @@
             return this.data;
         },
         supportStorage: function() {
-            try {
-                return 'localStorage' in root && root.localStorage !== null;
-            } catch (e) {
-                return false;
-            }
+            return isLocalStorageNameSupported();
         },
         syncStorage: function() {
             if (this.supportStorage()) {
