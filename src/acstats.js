@@ -135,10 +135,13 @@
     };
 
     var isLocalStorageNameSupported = function() {
+        var storage = root.localStorage;
+
         try {
-            root.localStorage.setItem('test', '1');
-            root.localStorage.removeItem('test');
-            return true;
+            storage.setItem('test', '1');
+            storage.removeItem('test');
+
+            return 'localStorage' in root && root.localStorage;
         } catch (error) {
             return false;
         }
