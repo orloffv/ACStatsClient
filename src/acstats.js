@@ -6,9 +6,10 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         define(factory);
+    } else {
+        root.ACStats = factory(root);
     }
 
-    root.ACStats = factory(root);
 })(this, function(root, MockXMLHttpRequest) {
     "use strict";
 
@@ -135,24 +136,24 @@
     };
 
     var isLocalStorageNameSupported = function() {
-        var storage = root.localStorage;
-
         try {
+            var storage = root.localStorage;
             storage.setItem('test', '1');
+            var status = 'localStorage' in root && Boolean(root.localStorage) && storage.getItem('test') === '1';
             storage.removeItem('test');
 
-            return 'localStorage' in root && root.localStorage;
+            return  status;
         } catch (error) {
             return false;
         }
-    };
+    }();
 
     var ObjectId = (function () {
         var increment = 0;
         var pid = Math.floor(Math.random() * (32767));
         var machine = Math.floor(Math.random() * (16777216));
 
-        if (isLocalStorageNameSupported()) {
+        if (isLocalStorageNameSupported) {
             var mongoMachineId = parseInt(root.localStorage.mongoMachineId, 10);
             if (mongoMachineId >= 0 && mongoMachineId <= 16777215) {
                 machine = Math.floor(root.localStorage.mongoMachineId);
@@ -364,7 +365,7 @@
             return this.data;
         },
         supportStorage: function() {
-            return isLocalStorageNameSupported();
+            return isLocalStorageNameSupported;
         },
         syncStorage: function() {
             if (this.supportStorage()) {
@@ -401,12 +402,17 @@
             this.flushing = false;
             this.sendData = {};
             this.initAutoFlush();
+            this.log = [];
         };
 
         ACStats.prototype = {
-            add: function(data, type, force) {
+            add: function(data, type, force, log) {
                 if (this.queue.getSize() >= this.options.flushLimit) {
                     this.flush();
+                }
+
+                if (log) {
+                    this.log.push({type: type, timestamp: getTimestamp(), data: data});
                 }
 
                 this.queue.push(type, extend({createdTimestamp: getTimestamp()}, data, this.options.data));
@@ -415,29 +421,29 @@
                     this.flush();
                 }
             },
-            hit: function(data, force) {
+            hit: function(data, force, log) {
                 if (!data.url) {
                     return false;
                 }
 
-                return this.add(data, 'hits', force);
+                return this.add(data, 'hits', force, log);
             },
-            time: function(data, force) {
+            time: function(data, force, log) {
                 if (!data.url) {
                     return false;
                 }
 
-                return this.add(data, 'times', force);
+                return this.add(data, 'times', force, log);
             },
-            event: function(data, force) {
+            event: function(data, force, log) {
                 if (!data.name) {
                     return false;
                 }
 
-                return this.add(data, 'events', force);
+                return this.add(data, 'events', force, log);
             },
-            session: function(data, force) {
-                return this.add(data, 'sessions', force);
+            session: function(data, force, log) {
+                return this.add(data, 'sessions', force, log);
             },
             flush: function(callback) {
                 if (this.queue.getSize() === 0) {
@@ -483,7 +489,10 @@
 
                 this.autoFlushId = setInterval(autoFlush, this.options.autoFlushInterval);
             },
-            ObjectId: ObjectId
+            ObjectId: ObjectId,
+            getLog: function() {
+                return this.log;
+            }
         };
 
         return ACStats;

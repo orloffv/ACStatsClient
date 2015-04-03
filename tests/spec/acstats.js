@@ -25,7 +25,6 @@
         this.readyState = 4;
         this.responseText = '{}';
     };
-
     var ACStats = require('../../src/acstats')(XMLHttpRequest, global);
 
     before(function(done) {
@@ -181,6 +180,17 @@
             assert(onFlush.getCalls().length === 10);
             assert(ACStatsInstance.flushing === false);
             assert(ACStatsInstance.queue.getSize() === 0);
+            done();
+        });
+
+        it('Log', function(done) {
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'});
+            ACStatsInstance.event({name: 'test'});
+            assert(ACStatsInstance.getLog().length === 0);
+
+            ACStatsInstance.hit({url: 'http://yandex.ru/first'}, null, true);
+            ACStatsInstance.event({name: 'test'}, null, true);
+            assert(ACStatsInstance.getLog().length === 2);
             done();
         });
     });
