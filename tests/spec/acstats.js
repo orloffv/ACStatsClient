@@ -191,6 +191,13 @@
             ACStatsInstance.hit({url: 'http://yandex.ru/first'}, null, true);
             ACStatsInstance.event({name: 'test'}, null, true);
             assert(ACStatsInstance.getLog().length === 2);
+
+            ACStatsInstance.event({name: 'test2'}, null, true);
+            assert(ACStatsInstance.getLog().length === 3);
+            assert(ACStatsInstance.getLog(2).length === 2);
+            assert(ACStatsInstance.getLog(2)[0].data.name === 'test');
+            assert(ACStatsInstance.getLog(2)[1].data.name === 'test2');
+            assert(ACStatsInstance.getLog(5).length === 3);
             done();
         });
     });

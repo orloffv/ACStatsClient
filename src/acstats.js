@@ -490,8 +490,19 @@
                 this.autoFlushId = setInterval(autoFlush, this.options.autoFlushInterval);
             },
             ObjectId: ObjectId,
-            getLog: function() {
-                return this.log;
+            getLog: function(limit) {
+                var logLength = this.log.length;
+                if (typeof limit === 'undefined' || logLength <= limit) {
+                    return this.log;
+                }
+
+                var result = [];
+
+                for (var i = logLength - limit; i < logLength; i++) {
+                    result.push(this.log[i]);
+                }
+
+                return result;
             }
         };
 
